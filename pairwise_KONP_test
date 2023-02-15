@@ -1,0 +1,68 @@
+##pairwise_konp_test is a function for posthoc pairwise comparisons for k-sample konp tests
+#The function takes the normal inputs for KONPsurv::konp_test in addition to a
+#p.adjust.method call that allows users specify the p-value adjustment method (default = "bonferroni) and
+#a test-statistic call that allows users to specify what p-value to use in the Konp test.
+
+#Inputs:
+#time = numerical variable specifying duration before event
+#status = numerical variable specifying occurence of the event of interest. Must take values
+#         1 (desired event achieved) or 0 (censored).
+#group = grouping variable
+#n_perm = number of desired permutations for the konp test. Default = 1999. See KONPsurv documentation for more
+#n_impu = number of desired imputations for the konp test. Default = 1. See KONPsurv documentation for more
+#p.adjust.method = preferred method for p-value adjustment for the pairwise comparisons. Default = "bonferroni".
+#                   Takes values from stats::p.adjust.methods, which are any of:
+#                   c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none")
+#                   see stats::p.adjust for more information
+#test_statistic = preferred test statistic for the Konp test. Default = "lr" for loglikelihood ratio permutations
+#                   Takes values from KONPsurv::konp_test, which are any of:
+#                   c("lr", "chisq", "cauchy")
+#                   see KONPsurv::konp_test for more information
+
+
+
+pairwise_konp_test <- function(
+  time, status, group, n_perm = 1999, n_impu = 1, 
+  p.adjust.method = "bonferroni", test_statistic = "lr") {
+  
+  if(isFALSE(test_statistic %in% c("lr", "chisq", "cauchy"))) {
+    stop("ERROR - test_statistic must be one of lr, chisq, or cauchy for likelihood ratio, 
+         chi-square, or cauchy, respectively\n")
+  }
+  
+  compare.levels <- function(i, j) {
+    dataset <- tibble::tibble(time, status, group)
+    subset <- group %in% (levels(group))[c(i, j)]
+    dataset2 <- dataset[subset,]
+    surv.diff <- KONPsurv::konp_test(dataset2$time, dataset2$status, dataset2$group, n_perm, n_impu)
+    
+    if (isTRUE(test_statistic %in% "lr")){
+      surv.diff$pv_lr
+    } else if (isTRUE(test_statistic %in% "chisq")) {
+      surv.diff$pv_chisq
+    } else {
+      surv.diff$pv_cauchy
+    }
+    
+  }
+  
+  method <- if (isTRUE(test_statistic %in% "lr")){
+      "Likelihood Ratio test statistic"
+    } else if (isTRUE(test_statistic %in% "chisq")) {
+      "Chi-square test statistic"} else {
+      "Cauchy test statistic"
+    }
+  
+  PVAL <- stats::pairwise.table(compare.levels, levels(group), 
+                                p.adjust.method)
+  res <- list(method = method, permutation = n_perm, p.value = PVAL, p.djust.method = p.adjust.method)
+  class(res) <- "pairwise.htest"
+  res
+}
+  
+  
+ #Example
+ #pairwise_konp_test(germination_data$survival_time_hours, 
+                  # germination_data$censored, 
+                  # germination_data$treatment,
+                  # p.adjust.method = "fdr")
