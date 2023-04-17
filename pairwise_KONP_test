@@ -10,7 +10,7 @@
 #group = grouping variable
 #n_perm = number of desired permutations for the konp test. Default = 1999. See KONPsurv documentation for more
 #n_impu = number of desired imputations for the konp test. Default = 1. See KONPsurv documentation for more
-#p.adjust.method = preferred method for p-value adjustment for the pairwise comparisons. Default = "bonferroni".
+#p.adjust.method = preferred method for p-value adjustment for the pairwise comparisons. Default = "none".
 #                   Takes values from stats::p.adjust.methods, which are any of:
 #                   c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none")
 #                   see stats::p.adjust for more information
@@ -23,7 +23,7 @@
 
 pairwise_konp_test <- function(
   time, status, group, n_perm = 1999, n_impu = 1, 
-  p.adjust.method = "bonferroni", test_statistic = "lr") {
+  p.adjust.method = "none", test_statistic = "lr") {
   
   if(isFALSE(test_statistic %in% c("lr", "chisq", "cauchy"))) {
     stop("ERROR - test_statistic must be one of lr, chisq, or cauchy for likelihood ratio, 
